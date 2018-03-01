@@ -102,13 +102,19 @@ sudo apt-get install quagga quagga-doc
 
 Install a couple of configuration files.
 
-bgpd.conf:
+Change directories to `/etc/quagga`.
+
+```
+cd /etc/quagga
+```
+
+Install bgpd.conf:
 
 ```
 sudo wget https://raw.githubusercontent.com/OUG-Toronto/neutron-dynamic-routing-and-quagqa/bgpd.conf
 ```
 
-zebra.conf:
+Install zebra.conf:
 
 ```
 sudo wget https://raw.githubusercontent.com/OUG-Toronto/neutron-dynamic-routing-and-quagqa/zebra.conf
@@ -155,7 +161,7 @@ sudo ip netns exec quagga-router bash
 
 The below commands assume that they are being run from that shell.
 
-In a network namespace, start quagga.
+In the `quagga-router` network namespace, start `bgpd` and `zebra`.
 
 ```
 /usr/lib/quagga/zebra --daemon -A 10.55.0.2
@@ -191,6 +197,10 @@ Escape character is '^]'.
 Hello, this is Quagga (version 0.99.24.1).
 Copyright 1996-2005 Kunihiro Ishiguro, et al.
 ```
+
+Exit from that telnet session.
+
+#### Optional: Example of Listening Ports
 
 As an example, in the namespace, show what ports are listening. Notice only a few ports are listening.
 
@@ -237,7 +247,7 @@ tcp6       0      0 :::3260                 :::*                    LISTEN      
 
 ## Configure Neutron Dynamic Routing
 
-Download the configuration file.
+Download the configuration file into `/etc/neutron`.
 
 ```
 cd /etc/neutron
@@ -250,7 +260,11 @@ Restart the NDR agent.
 sudo systemctl restart devstack@q-dr-agent.service
 ```
 
+NDR is now configured.
+
 ## Configure OpenStack Networking
+
+We need to make some changes to default DevStack.
 
 First, make sure `.profile` has been sourced.
 
@@ -303,11 +317,13 @@ neutron bgp-peer-create --peer-ip 10.55.0.2 \
 neutron bgp-speaker-peer-add bgp-speaker bgp-100-200
 ```
 
+Peering should now be setup between Neutron and Quagga.
+
 ## Validate
 
 We will login to the bgpd instance and show what BGP routes it knows.
 
-Note that the "Next Hop" will have the "public" IP of the Neutron router we created above.
+Note that the "Next Hop" will have the "public" IP of the Neutron router we created above, and the network announced will the the subnet we created.
 
 ```
 telnet 10.55.0.2 2605
@@ -337,7 +353,11 @@ Look for the `external_gateway_info` line.
 
 We have now setup quagga in a namespace and setup Netron to peer with it.
 
+## Extra Credit
+
+TBD
+
 ## TODO
 
-* Have zebra inject routes into the namespace
+* Have zebra inject routes into the namespace and actually be able to ping the internal IP of the Neutron router
 * Use openstack-client commands
