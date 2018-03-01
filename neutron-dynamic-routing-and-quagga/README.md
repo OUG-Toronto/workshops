@@ -12,11 +12,19 @@ We will then setup a Quagga instance on the same node as DevStack, but running i
 
 Finally we will configure OpenStack Neutron to advertise routes to the Quagga instance via BGP and observe the routes being accepted by the Quagga instance.
 
+## How to Use This Document
+
+For the most part, each of the `code` sections is meant to be cut and paste into a terminal session on the DevStack instance you will be provided as part of the lab.
+
+It's not necessary to type all the commands in, unless you want to.
+
 ## Pre-Work
 
-Some pre-work has already been done to speed up this lab, as DevStack can take 30-50 minutes to install.
+Some pre-work has already been done to speed up this lab, as DevStack can take 30-50 minutes to install. It's being documented here so that the lab is repeatable, but people participating in the lab don't need to setup DevStack.
 
 ### Install DevStack
+
+Configure a stack user.
 
 ```
 sudo useradd -s /bin/bash -d /opt/stack -m stack
@@ -25,7 +33,7 @@ sudo passwd stack
 # add a known password
 ```
 
-Setup ssh access via a public key.
+OPTIONAL: Setup ssh access via a public key.
 
 ```
 sudo mkdir /opt/stack/.ssh
@@ -34,15 +42,15 @@ sudo mv authorized_keys /opt/stack/.ssh/
 sudo chown stack:stack /opt/stack/.ssh/authorized_keys
 ```
 
-Log out of the instance and relogin as the `stack` user.
+Log out of the instance and re-login as the `stack` user.
 
 ```
 ssh stack@${DEVSTACK_IP}
 ```
 
-Download DevStack.
+Clone DevStack and checkout a particular commit sha.
 
-*NOTE: We are using a specific checkout that is known to work.*
+*NOTE: We are using a specific checkout that is known to work. VERY IMPORTANT to checkout that partciular sha.*
 
 ```
 git clone https://git.openstack.org/openstack-dev/devstack
@@ -53,7 +61,7 @@ git checkout a30f89b
 Obtain a the `local.conf` file we will use for this lab.
 
 ```
-wget https://raw.githubusercontent.com/OUG-Toronto/neutron-dynamic-routing-and-quagqa/local.conf
+wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/local.conf
 ```
 
 From a screen session, start the DevStack install.
@@ -69,7 +77,7 @@ Wait for about 30 minutes as the install completes.
 
 ### Profile
 
-Add the below to `~.profile`.
+Add the below to `~/.profile`.
 
 ```
 export OS_PROJECT_DOMAIN_NAME="default"
@@ -115,23 +123,25 @@ cd /etc/quagga
 Install bgpd.conf:
 
 ```
-sudo wget https://raw.githubusercontent.com/OUG-Toronto/neutron-dynamic-routing-and-quagqa/bgpd.conf
+sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/bgpd.conf
 ```
 
 Install zebra.conf:
 
 ```
-sudo wget https://raw.githubusercontent.com/OUG-Toronto/neutron-dynamic-routing-and-quagqa/zebra.conf
+sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/zebra.conf
 ```
 
 ### Quagga Network Namespace
 
 We will be using Linux network namespaces to simulate an external router. We only have one host in this lab, so we use network namespaces to make it appear as though the quagga instance is running on a separate host. (Aside: Network namspaces are a powerful feature of Linux, one which has allowed Linux based containers to flourish. They are used heavily in Neutron.)
 
-First create the namespace.
+First create the namespace and add interfaces into it.
 
 ```
 sudo ip netns create quagga-router
+sudo ip link add veth0 type veth peer name veth1
+sudo ip link set veth1 netns quagga-router
 ```
 
 Next, we configure interfaces inside and outside of the namespace.
@@ -255,7 +265,7 @@ Download the configuration file into `/etc/neutron`.
 
 ```
 cd /etc/neutron
-sudo wget https://raw.githubusercontent.com/OUG-Toronto/neutron-dynamic-routing-and-quagqa/bgp_dragent.ini
+sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/bgp_dragent.ini
 ```
 
 Restart the NDR agent.
@@ -296,6 +306,20 @@ neutron subnetpool-create --pool-prefix 10.0.0.0/16 \
   --address-scope public --shared selfservice
 neutron subnet-create --name provider --subnetpool provider --prefixlen 24 public
 neutron subnet-create --name selfservice --subnetpool selfservice  --prefixlen 24 private
+```
+
+We should now have a few subnets, including `10.0.0.0/24`.
+
+```
+$ os subnet list -c Name -c Subnet
++---------------------+--------------------+
+| Name                | Subnet             |
++---------------------+--------------------+
+| selfservice         | 10.0.0.0/24        |
+| provider            | 172.24.4.0/24      |
+| ipv6-private-subnet | fdc1:7f2:e3ba::/64 |
+| ipv6-public-subnet  | 2001:db8::/64      |
++---------------------+--------------------+
 ```
 
 Create a new router.
@@ -359,7 +383,40 @@ We have now setup quagga in a namespace and setup Netron to peer with it.
 
 ## Extra Credit
 
-TBD
+### Add Another Subnet
+
+Create another subnet.
+
+```
+neutron subnet-create --name selfservice2 --subnetpool selfservice  --prefixlen 24 private
+```
+
+Add it to `router1`.
+
+```
+openstack router add subnet router1 selfservice2
+```
+
+The new subnet should be published to the Quagga router.
+
+Telnet into the Quagga `bgpd` instance to validate.
+
+```
+bgp-devstack-02> show ip bgp
+BGP table version is 0, local router ID is 10.55.0.2
+Status codes: s suppressed, d damped, h history, * valid, > best, = multipath,
+              i internal, r RIB-failure, S Stale, R Removed
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+   Network          Next Hop            Metric LocPrf Weight Path
+*> 10.0.0.0/24      172.24.4.8                             0 200 i
+*> 10.0.1.0/24      172.24.4.8                             0 200 i
+
+Total number of prefixes 2
+bgp-devstack-02>
+```
+
+As can be seen above, the second subnet is now known by the Quagga router, and has a next hop of the external interface of `router1`.
 
 ## TODO
 
