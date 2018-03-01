@@ -1,4 +1,4 @@
-# Neutron Dynamic Routing
+# Neutron Dynamic Routing Workshop
 
 OpenStack Neutron is capable of peering with external routers running Border Gatway Protocol (BGP). This is accomplished via [Neutron Dynamic Routing](https://docs.openstack.org/neutron-dynamic-routing/latest/).
 
