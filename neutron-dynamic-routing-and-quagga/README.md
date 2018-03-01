@@ -12,6 +12,14 @@ We will then setup a Quagga instance on the same node as DevStack, but running i
 
 Finally we will configure OpenStack Neutron to advertise routes to the Quagga instance via BGP and observe the routes being accepted by the Quagga instance.
 
+## Requirements
+
+The requirements are fairly low for the lab, especially if you have some experience using the command line (CLI).
+
+* Laptop with WIFI
+* Ability to use SSH (eg. Putty on Windows)
+* Some CLI experience--such as cutting and pasting commands from this document into a SSH session
+
 ## How to Use This Document
 
 For the most part, each of the `code` sections is meant to be cut and paste into a terminal session on the DevStack instance you will be provided as part of the lab.
@@ -50,7 +58,7 @@ ssh stack@${DEVSTACK_IP}
 
 Clone DevStack and checkout a particular commit sha.
 
-*NOTE: We are using a specific checkout that is known to work. VERY IMPORTANT to checkout that partciular sha.*
+*NOTE: We are using a specific checkout that is known to work. VERY IMPORTANT to checkout that particular sha.*
 
 ```
 git clone https://git.openstack.org/openstack-dev/devstack
@@ -203,14 +211,24 @@ telnet 10.55.0.2 2605
 Once the password is entered, we should see something like the below.
 
 ```
-telnet 10.55.0.2 2605
+$ telnet 10.55.0.2 2605
 Trying 10.55.0.2...
 Connected to 10.55.0.2.
 Escape character is '^]'.
 
 Hello, this is Quagga (version 0.99.24.1).
 Copyright 1996-2005 Kunihiro Ishiguro, et al.
+
+
+User Access Verification
+
+Password:
+bgp-devstack-02> show ip bgp
+No BGP network exists
+bgp-devstack-02>
 ```
+
+Note that no BGP entries exist.
 
 Exit from that telnet session.
 
@@ -379,7 +397,7 @@ Look for the `external_gateway_info` line.
 
 ## Conclusion
 
-We have now setup quagga in a namespace and setup Netron to peer with it.
+We have now setup quagga in a namespace and setup Neutron to peer with it.
 
 ## Extra Credit
 
