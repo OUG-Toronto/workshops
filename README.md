@@ -84,6 +84,10 @@ Source it.
 . ~/.profile
 ```
 
+## Start the Workshop
+
+This is where we will start the lab/workshop from.
+
 ## Quagga
 
 Quagga is a collection of networking daemons, including `bgpd`, which we will be using for this lab.
