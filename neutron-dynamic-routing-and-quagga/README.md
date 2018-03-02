@@ -1,30 +1,37 @@
 # Neutron Dynamic Routing Workshop
 
-OpenStack Neutron is capable of peering with external routers running Border Gatway Protocol (BGP). This is accomplished via [Neutron Dynamic Routing](https://docs.openstack.org/neutron-dynamic-routing/latest/).
+## Overview
+
+OpenStack Neutron is capable of peering with external routers running Border Gateway Protocol (BGP). This is accomplished via [Neutron Dynamic Routing](https://docs.openstack.org/neutron-dynamic-routing/latest/) (NDR).
 
 Once dynamic routing is configured, certain address scopes are allowed to be advertised by a Neutron agent. Once subnets are created in a particular address scope, they will be shared via BGP and become available externally. This is a form of network automation and helps to integrate an OpenStack cloud into an organizations network.
 
+## Abstract
+
+OpenStack is often considered complex to deploy. However, surprisingly, often the most difficult part of deploying OpenStack is integrating it with an organizations internal network. In this workshop we will show how to use Neutron Dynamic Routing to more easily integrate OpenStack with an internal network. This is accomplished by configuring Neutron to peer with an organizations routers to announce routes. With this peering in place, networks and first hops in the OpenStack cloud will *automatically* become available to a larger internal network.
+
 ## What We Will Do
 
-In this lab we will create a DevStack instance that has the `neutron-dynamic-routing` plugin enabled.
+In this lab we will:
 
-We will then setup a Quagga instance on the same node as DevStack, but running in a separate Linux network name space.
-
-Finally we will configure OpenStack Neutron to advertise routes to the Quagga instance via BGP and observe the routes being accepted by the Quagga instance.
+* Create a DevStack instance that has the `neutron-dynamic-routing` plugin enabled
+* Setup a Quagga instance on the same node as DevStack (though running in a separate Linux network name space)
+* Configure OpenStack Neutron to advertise routes to the Quagga instance via BGP
+* Observe the advertised routes being accepted by the Quagga instance.
 
 ## Requirements
 
 The requirements are fairly low for the lab, especially if you have some experience using the command line (CLI).
 
-* Laptop with WIFI
+* Laptop with WIFI capability
 * Ability to use SSH (eg. Putty on Windows)
-* Some CLI experience--such as cutting and pasting commands from this document into a SSH session
+* Some CLI experience--ability to cut and paste commands from this document into a SSH session
 
 ## How to Use This Document
 
 For the most part, each of the `code` sections is meant to be cut and paste into a terminal session on the DevStack instance you will be provided as part of the lab.
 
-It's not necessary to type all the commands in, unless you want to.
+It's not necessary to type all the commands in...unless you want to. :)
 
 ## Pre-Work
 
@@ -128,7 +135,9 @@ Change directories to `/etc/quagga`.
 cd /etc/quagga
 ```
 
-Install bgpd.conf:
+Install bgpd.conf.
+
+*NOTE: Note the passive setting in the configuration file. The NDR agent is not listening on any ports, so Quagga, or any external router, cannot connect to it. Thus the need for the passive setting.*
 
 ```
 sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/bgpd.conf
@@ -257,24 +266,7 @@ Proto Recv-Q Send-Q Local Address           Foreign Address         State       
 tcp        0      0 0.0.0.0:8775            0.0.0.0:*               LISTEN      960/nova-api-metauW
 tcp        0      0 0.0.0.0:9191            0.0.0.0:*               LISTEN      19884/python    
 tcp        0      0 127.0.0.1:60999         0.0.0.0:*               LISTEN      20670/glance-apiuWS
-tcp        0      0 0.0.0.0:25672           0.0.0.0:*               LISTEN      -               
-tcp        0      0 127.0.0.1:6633          0.0.0.0:*               LISTEN      24872/python    
-tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      -               
-tcp        0      0 127.0.0.1:11211         0.0.0.0:*               LISTEN      -               
-tcp        0      0 10.101.0.153:2379       0.0.0.0:*               LISTEN      -               
-tcp        0      0 127.0.0.1:6640          0.0.0.0:*               LISTEN      -               
-tcp        0      0 0.0.0.0:4369            0.0.0.0:*               LISTEN      -               
-tcp        0      0 127.0.0.1:35730         0.0.0.0:*               LISTEN      960/nova-api-metauW
-tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -               
-tcp        0      0 0.0.0.0:3260            0.0.0.0:*               LISTEN      -               
-tcp        0      0 0.0.0.0:6080            0.0.0.0:*               LISTEN      1589/python     
-tcp        0      0 0.0.0.0:9696            0.0.0.0:*               LISTEN      23085/python    
-tcp6       0      0 :::5672                 :::*                    LISTEN      -               
-tcp6       0      0 :::2380                 :::*                    LISTEN      -               
-tcp6       0      0 :::80                   :::*                    LISTEN      -               
-tcp6       0      0 :::4369                 :::*                    LISTEN      -               
-tcp6       0      0 :::22                   :::*                    LISTEN      -               
-tcp6       0      0 :::3260                 :::*                    LISTEN      -
+SNIP!
 ```
 
 ## Configure Neutron Dynamic Routing
@@ -367,7 +359,7 @@ Peering should now be setup between Neutron and Quagga.
 
 ## Validate
 
-We will login to the bgpd instance and show what BGP routes it knows.
+We will login to the `bgpd` instance and show what BGP routes it knows.
 
 Note that the "Next Hop" will have the "public" IP of the Neutron router we created above, and the network announced will the the subnet we created.
 
@@ -435,6 +427,12 @@ bgp-devstack-02>
 ```
 
 As can be seen above, the second subnet is now known by the Quagga router, and has a next hop of the external interface of `router1`.
+
+## Related Work
+
+### Using Juniper vSRX Instead of Quagga
+
+There is also a workshop available on using a [Juniper vSRX](https://github.com/idx-labs/openstack-network-slicing/blob/master/lab0/README.md) instead of Quagga.
 
 ## TODO
 
