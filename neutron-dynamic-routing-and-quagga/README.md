@@ -98,7 +98,7 @@ Add the below to `~/.profile`.
 export OS_PROJECT_DOMAIN_NAME="default"
 export OS_IDENTITY_API_VERSION=3
 alias os=openstack
-. /home/stack/accrc/admin/admin
+. /opt/stack/devstack/accrc/admin/admin
 ```
 
 Source it.
