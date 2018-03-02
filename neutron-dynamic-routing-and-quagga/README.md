@@ -10,6 +10,8 @@ Once dynamic routing is configured, certain address scopes are allowed to be adv
 
 OpenStack is often considered complex to deploy. However, surprisingly, often the most difficult part of deploying OpenStack is integrating it with an organizations internal network. In this workshop we will show how to use Neutron Dynamic Routing to more easily integrate OpenStack with an internal network. This is accomplished by configuring Neutron to peer with an organizations routers to announce routes. With this peering in place, networks and first hops in the OpenStack cloud will *automatically* become available to a larger internal network.
 
+Imagine adding a network to OpenStack (via the Neutron API) and then magically having that network available from anywhere in your internal network! Wouldn't that be nice. :)
+
 ## What We Will Do
 
 In this lab we will:
@@ -197,6 +199,14 @@ In the `quagga-router` network namespace, start `bgpd` and `zebra`.
 ```
 /usr/lib/quagga/zebra --daemon -A 10.55.0.2
 /usr/lib/quagga/bgpd --daemon -A 10.55.0.2
+```
+
+Validate that `zebra` and `bgpd` are running.
+
+```
+# ps ax | grep [q]uagga
+26197 ?        Ss     0:00 /usr/lib/quagga/zebra --daemon -A 10.55.0.2
+26432 ?        Ss     0:01 /usr/lib/quagga/bgpd --daemon -A 10.55.0.2
 ```
 
 Exit the namespace.
