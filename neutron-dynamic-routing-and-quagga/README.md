@@ -27,7 +27,8 @@ The requirements are fairly low for the lab, especially if you have some experie
 
 * Laptop with WIFI capability
 * Ability to use SSH (eg. Putty on Windows)
-* Some CLI experience--ability to cut and paste commands from this document into a SSH session
+* Ability to cut and paste commands from this document into a SSH session
+* Ability to edit a file via the command line
 
 ## Sponsors
 
