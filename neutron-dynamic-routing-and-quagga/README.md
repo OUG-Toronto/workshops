@@ -473,6 +473,32 @@ bgp-devstack-02>
 
 As can be seen above, the second subnet is now known by the Quagga router, and has a next hop of the external interface of `router1`.
 
+### Stop the NDR Agent
+
+```
+sudo systemctl stop devstack@q-dr-agent.service
+```
+
+Observe the routes have been removed from bgpd.
+
+```
+$ telnet 10.55.0.2 2605
+Trying 10.55.0.2...
+Connected to 10.55.0.2.
+Escape character is '^]'.
+
+Hello, this is Quagga (version 0.99.24.1).
+Copyright 1996-2005 Kunihiro Ishiguro, et al.
+
+
+User Access Verification
+
+Password:
+toronto-osug-lab-0> sh ip bgp
+No BGP network exists
+toronto-osug-lab-0> exit
+```
+
 ## Deleting Speaker
 
 ```
