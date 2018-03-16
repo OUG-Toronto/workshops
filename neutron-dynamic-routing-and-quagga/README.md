@@ -16,7 +16,7 @@ Imagine adding a network to OpenStack (via the Neutron API) and then magically h
 
 In this lab we will:
 
-* Create a DevStack instance that has the `neutron-dynamic-routing` plugin enabled
+* Access a pre-deployed DevStack instance
 * Setup a Quagga instance on the same node as DevStack (though running in a separate Linux network name space)
 * Configure OpenStack Neutron to advertise routes to the Quagga instance via BGP
 * Observe the advertised routes being accepted by the Quagga instance.
