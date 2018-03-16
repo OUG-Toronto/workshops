@@ -107,6 +107,8 @@ This is where we will start the lab/workshop from.
 
 Add the below to `~/.profile`.
 
+*NOTE: If you don't want to edit the file, you can simply paste these commands into your shell. Just remember to re-paste them if you exit the shell for some reason. Otherwise, putting them in `~/.profile` will ensure they are sourced when a new shell is started.*
+
 ```
 export OS_PROJECT_DOMAIN_NAME="default"
 export OS_IDENTITY_API_VERSION=3
