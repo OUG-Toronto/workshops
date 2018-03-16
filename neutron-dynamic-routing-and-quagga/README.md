@@ -220,12 +220,6 @@ Validate that `zebra` and `bgpd` are running.
 26432 ?        Ss     0:01 /usr/lib/quagga/bgpd --daemon -A 10.55.0.2
 ```
 
-Exit the namespace.
-
-```
-exit
-```
-
 ### Access Quagga
 
 We should now be able to telnet into the zebra and bgpd instances. Below we will login to the `bgpd` instance.
