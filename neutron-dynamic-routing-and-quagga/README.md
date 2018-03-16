@@ -29,6 +29,12 @@ The requirements are fairly low for the lab, especially if you have some experie
 * Ability to use SSH (eg. Putty on Windows)
 * Some CLI experience--ability to cut and paste commands from this document into a SSH session
 
+## Sponsors
+
+* [OICR](https://oicr.on.ca/) - For space to hold the workshop
+* [IDX](http://www.interdynamix.com) - For putting together this document
+* [Cloud.ca](http://cloud.ca) - For virtual machines in the cloud to run the workshop on
+
 ## How to Use This Document
 
 For the most part, each of the `code` sections is meant to be cut and paste into a terminal session on the DevStack instance you will be provided as part of the lab.
@@ -92,6 +98,10 @@ screen -R install
 
 Wait for about 30 minutes as the install completes.
 
+## Start the Workshop
+
+This is where we will start the lab/workshop from.
+
 ### Profile
 
 Add the below to `~/.profile`.
@@ -100,7 +110,7 @@ Add the below to `~/.profile`.
 export OS_PROJECT_DOMAIN_NAME="default"
 export OS_IDENTITY_API_VERSION=3
 alias os=openstack
-. /opt/stack/devstack/accrc/admin/admin
+. ~/devstack/accrc/admin/admin
 ```
 
 Source it.
@@ -108,10 +118,6 @@ Source it.
 ```
 . ~/.profile
 ```
-
-## Start the Workshop
-
-This is where we will start the lab/workshop from.
 
 ## Quagga
 
@@ -124,7 +130,7 @@ OpenStack has some documentation in setting up [Quagga](https://docs.openstack.o
 Install quagga.
 
 ```
-sudo apt-get install quagga quagga-doc
+sudo apt-get install quagga quagga-doc -y
 ```
 
 ### Configure
@@ -142,13 +148,13 @@ Install bgpd.conf.
 *NOTE: Note the passive setting in the configuration file. The NDR agent is not listening on any ports, so Quagga, or any external router, cannot connect to it. Thus the need for the passive setting.*
 
 ```
-sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/bgpd.conf
+sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/master/neutron-dynamic-routing-and-quagga/bgpd.conf
 ```
 
 Install zebra.conf:
 
 ```
-sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/zebra.conf
+sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/master/neutron-dynamic-routing-and-quagga/zebra.conf
 ```
 
 ### Quagga Network Namespace
@@ -158,7 +164,7 @@ We will be using Linux network namespaces to simulate an external router. We onl
 First create the namespace and add interfaces into it.
 
 ```
-sudo ip netns create quagga-router
+sudo ip netns add quagga-router
 sudo ip link add veth0 type veth peer name veth1
 sudo ip link set veth1 netns quagga-router
 ```
@@ -175,6 +181,19 @@ sudo ip netns exec quagga-router ip add add 10.55.0.2/24 dev veth1
 sudo ip netns exec quagga-router ip route add default via 10.55.0.1
 ```
 
+And remove the `172.24.4.1` gateway from devstack and put it in the quagga namespace.
+
+*NOTE: Without this bgpd will reject the routes as they are not locally connected.*
+
+```
+sudo ip ad flush br-ex
+sudo ip link add veth2 type veth peer name veth3
+sudo ip link set veth3 netns quagga-router
+sudo ip link set veth2 up
+sudo ip netns exec quagga-router ip link set veth3 up
+sudo ip netns exec quagga-router ip add add 172.24.4.1/24 dev veth3
+```
+
 ### Start Quagga
 
 Stop quagga if it is running.
@@ -186,19 +205,11 @@ sudo systemctl stop quagga
 sudo pkill -f quagqa #just in case... :)
 ```
 
-Access the network namespace. The below will start a bash shell in the quagga-router namespace.
+Start `bgpd` and `zebra` in the quagga-router namespace.
 
 ```
-sudo ip netns exec quagga-router bash
-```
-
-The below commands assume that they are being run from that shell.
-
-In the `quagga-router` network namespace, start `bgpd` and `zebra`.
-
-```
-/usr/lib/quagga/zebra --daemon -A 10.55.0.2
-/usr/lib/quagga/bgpd --daemon -A 10.55.0.2
+sudo ip netns exec quagga-router /usr/lib/quagga/zebra --daemon -A 10.55.0.2
+sudo ip netns exec quagga-router /usr/lib/quagga/bgpd --daemon -A 10.55.0.2
 ```
 
 Validate that `zebra` and `bgpd` are running.
@@ -251,9 +262,21 @@ Note that no BGP entries exist.
 
 Exit from that telnet session.
 
+```
+exit
+```
+
 #### Optional: Example of Listening Ports
 
 As an example, in the namespace, show what ports are listening. Notice only a few ports are listening.
+
+Access namespace again:
+
+```
+sudo ip netns exec quagga-router bash
+```
+
+Run netstat:
 
 ```
 quagga-router-namespace# netstat -nplt
@@ -265,7 +288,14 @@ tcp        0      0 0.0.0.0:179             0.0.0.0:*               LISTEN      
 tcp6       0      0 :::179                  :::*                    LISTEN      26192/bgpd
 ```
 
+Exit:
+
+```
+exit
+```
+
 Outside of the namespace, many port ports are listening. These are all the OpenStack APIs and such.
+
 
 ```
 $ netstat -nplt
@@ -285,7 +315,8 @@ Download the configuration file into `/etc/neutron`.
 
 ```
 cd /etc/neutron
-sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/bgp_dragent.ini
+sudo rm bgp_dragent.ini
+sudo wget https://raw.githubusercontent.com/OUG-Toronto/workshops/master/neutron-dynamic-routing-and-quagga/bgp_dragent.ini
 ```
 
 Restart the NDR agent.
@@ -389,6 +420,16 @@ Total number of prefixes 1
 bgp-devstack-02>
 ```
 
+If we are lucky, zebra will inject the route into the quagga namespace. Note the `proto zebra`.
+
+```
+$ sudo ip netns exec quagga-router ip ro sh
+default via 10.55.0.1 dev veth1
+10.0.0.0/24 via 172.24.4.10 dev veth3  proto zebra
+10.55.0.0/24 dev veth1  proto kernel  scope link  src 10.55.0.2
+172.24.4.0/24 dev veth3  proto kernel  scope link  src 172.24.4.1
+```
+
 Run the below to validate the "Next Hop" IP.
 
 ```
@@ -437,6 +478,13 @@ bgp-devstack-02>
 ```
 
 As can be seen above, the second subnet is now known by the Quagga router, and has a next hop of the external interface of `router1`.
+
+## Deleting Speaker
+
+```
+neutron bgp-speaker-delete bgp-speaker
+neutron bgp-peer-delete bgp-100-200
+```
 
 ## Related Work
 
