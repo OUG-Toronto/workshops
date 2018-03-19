@@ -4,7 +4,7 @@
 
 OpenStack Neutron is capable of peering with external routers running Border Gateway Protocol (BGP). This is accomplished via [Neutron Dynamic Routing](https://docs.openstack.org/neutron-dynamic-routing/latest/) (NDR).
 
-Once dynamic routing is configured, certain address scopes are allowed to be advertised by a Neutron agent. Once subnets are created in a particular address scope, they will be shared via BGP and become available externally. This is a form of network automation and helps to integrate an OpenStack cloud into an organizations network.
+Once dynamic routing is configured, certain address scopes are allowed to be advertised by a Neutron agent. When subnets are created in a particular address scope, they will be shared via BGP and become available externally. This is a form of network automation and helps to integrate an OpenStack cloud into an organizations network.
 
 ## Abstract
 
@@ -519,3 +519,8 @@ There is also a workshop available on using a [Juniper vSRX](https://github.com/
 
 * Have zebra inject routes into the namespace and actually be able to ping the internal IP of the Neutron router
 * Use openstack-client commands
+
+## Issues
+
+* neutron-openvswitch 100% cpu
+* If bgp connection fails for some reason, will not reconnect at all, have to delete speaker/peer and recreate
