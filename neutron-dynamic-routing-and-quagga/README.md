@@ -85,7 +85,7 @@ git checkout a30f89b
 Obtain a the `local.conf` file we will use for this lab.
 
 ```
-wget https://raw.githubusercontent.com/OUG-Toronto/workshops/neutron-dynamic-routing-and-quagqa/local.conf
+wget https://raw.githubusercontent.com/OUG-Toronto/workshops/master/neutron-dynamic-routing-and-quagga/local.conf
 ```
 
 From a screen session, start the DevStack install.
